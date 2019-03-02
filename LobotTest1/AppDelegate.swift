@@ -3,7 +3,7 @@
 //  LobotTest1
 //
 //  Created by sbdev on 2/2/19.
-//  Copyright © 2019 Actiontec. All rights reserved.
+//  Copyright © 2019 any. All rights reserved.
 //
 
 import Cocoa
