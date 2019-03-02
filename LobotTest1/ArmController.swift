@@ -18,9 +18,14 @@ class ArmController : NSObject {
     var _char:CBCharacteristic
     var _timer:Timer?
 
-    var _angleInit = 0
-    var _cnt = 0
-    var _cnt2 = 0
+    // Arm length in mm
+    var _d5b:Double = 72.0
+    var _d54:Double = 96.0
+    var _d43:Double = 96.0
+    var _d32:Double = 96.0
+    var _d20:Double = 149.0 //96.0
+
+    var _angleInited = 0
     var _angle1:Double = 180.0
     var _angle2:Double = 70.0 //160.0
     var _angle3:Double = 120.0
@@ -44,11 +49,6 @@ class ArmController : NSObject {
         moveServo(id:5, angle:_angle5, time:1000)
         moveServo(id:6, angle:_angle6, time:1000)
     }
-    var _d5b:Double = 72.0
-    var _d54:Double = 96.0
-    var _d43:Double = 96.0
-    var _d32:Double = 96.0
-    var _d20:Double = 96.0
     
     func cosFomula(len1 a:Double, len2 b:Double, len3 c:Double, valid:inout Bool) -> (Double) {
         let val = (a*a + b*b - c*c)/(2.0*a*b)
@@ -144,61 +144,50 @@ class ArmController : NSObject {
             return (th3, th4, th5, th6, valid)
         }
     }
-    
+    var _cnt = 0
+    func test_mesh_touch() {
+        let start_x = 120.0
+        let start_y = -30.0
+        let inc_xy = 10.0
+        var myCnt:Int
+        var valid:Bool
+        if (_cnt <= 100 && _cnt % 5 == 2) {
+            var th3:Double
+            var th4:Double
+            var th5:Double
+            var th6:Double
+            myCnt = _cnt/5
+            (th3,th4,th5,th6,valid) = calcThFromXYZ(x:start_x + inc_xy*Double(myCnt%10), y:start_y + inc_xy*Double(myCnt/10), z:40.0)
+            print("cnt=\(myCnt) th3=\(th3) th4=\(th4) th5=\(th5) valid=\(valid)")
+            if (valid == false) {
+                return
+            }
+            moveServo(id:6, angle: -1.0*th6 + _angle6, time:500)
+            moveServo(id:5, angle: -1.0*th5 + _angle5, time:500)
+            moveServo(id:4, angle:  1.0*th4 + _angle4, time:500)
+            moveServo(id:3, angle: -1.0*th3 + _angle3, time:500)
+        }
+        if (_cnt <= 100 && _cnt % 5 == 3) {
+            var th3:Double
+            var th4:Double
+            var th5:Double
+            var th6:Double
+            myCnt = _cnt/5
+            (th3,th4,th5,th6,valid) = calcThFromXYZ(x:start_x + inc_xy*Double(myCnt%10), y:start_y + inc_xy*Double(myCnt/10), z:0.0)
+            print("cnt=\(myCnt) th3=\(th3) th4=\(th4) th5=\(th5) valid=\(valid)")
+            if (valid == false) {
+                return
+            }
+            moveServo(id:6, angle: -1.0*th6 + _angle6, time:500)
+            moveServo(id:5, angle: -1.0*th5 + _angle5, time:500)
+            moveServo(id:4, angle:  1.0*th4 + _angle4, time:500)
+            moveServo(id:3, angle: -1.0*th3 + _angle3, time:500)
+        }
+        _cnt = _cnt + 1
+    }
     @objc func TimerCallback() {
         print("update")
-        var myCnt = 0
-        var valid:Bool
-        if (_char == nil || _cnt == 0) {
-            if (_cnt2 < 20) {
-                var th30:Double
-                var th40:Double
-                var th50:Double
-                let x0:Double = 100.0 + 5.0*Double(_cnt2)
-                //(th30,th40,th50,valid) = calcThFromXY(x:x0, y:20.0)
-                //print("th30=\(th30) th40=\(th40) th50=\(th50) valid=\(valid)")
-            }
-            _cnt2 = _cnt2 + 1
-        }
-        if (_char != nil) {
-            if (_angleInit == 0) {
-                initAngle()
-                _angleInit = 1
-            }
-            if (myCnt <= 100 && _cnt % 5 == 2) {
-                var th3:Double
-                var th4:Double
-                var th5:Double
-                var th6:Double
-                myCnt = _cnt/5
-                (th3,th4,th5,th6,valid) = calcThFromXYZ(x:100.0 + 10.0*Double(myCnt%10), y:-50 + 10.0*Double(myCnt/10), z:20.0)
-                print("cnt=\(myCnt) th3=\(th3) th4=\(th4) th5=\(th5) valid=\(valid)")
-                if (valid == false) {
-                    return
-                }
-                moveServo(id:6, angle: -1.0*th6 + _angle6, time:500)
-                moveServo(id:5, angle: -1.0*th5 + _angle5, time:500)
-                moveServo(id:4, angle:  1.0*th4 + _angle4, time:500)
-                moveServo(id:3, angle: -1.0*th3 + _angle3, time:500)
-            }
-            if (myCnt <= 100 && _cnt % 5 == 3) {
-                var th3:Double
-                var th4:Double
-                var th5:Double
-                var th6:Double
-                myCnt = _cnt/5
-                (th3,th4,th5,th6,valid) = calcThFromXYZ(x:100.0 + 10.0*Double(myCnt%10), y:-50 + 10.0*Double(myCnt/10), z:0.0)
-                print("cnt=\(myCnt) th3=\(th3) th4=\(th4) th5=\(th5) valid=\(valid)")
-                if (valid == false) {
-                    return
-                }
-                moveServo(id:6, angle: -1.0*th6 + _angle6, time:500)
-                moveServo(id:5, angle: -1.0*th5 + _angle5, time:500)
-                moveServo(id:4, angle:  1.0*th4 + _angle4, time:500)
-                moveServo(id:3, angle: -1.0*th3 + _angle3, time:500)
-            }
-            _cnt = _cnt + 1
-        }
+        test_mesh_touch()
     }
     func moveServo(id: UInt, angle: Double, time: UInt) -> Void {
         //var theData : [UInt8] = [ 0x55, 0x55, 0x08, 0x03, 0x01, 0x96, 0x00, 0x01, 0x4b, 0x01 ]
