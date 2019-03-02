@@ -1,12 +1,27 @@
 import math
+import sqlite3
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+c = sqlite3.connect('/Users/sbdev/Documents/xarm.db')
+for row in c.execute('SELECT * FROM angles where id=1'):
+    angle1 = float(row[1])
+    angle2 = float(row[2])
+    angle3 = float(row[3])
+    angle4 = float(row[4])
+    angle5 = float(row[5])
+    angle6 = float(row[6])
+
+print(angle1, angle2, angle3, angle4, angle5, angle6)
 ra = math.pi/180.0
-th5 = -10.0
-th4 = 120.0
-th3 = -10.0
+#th5 = -10.0
+#th4 = 120.0
+#th3 = -10.0
 th2 = 90.0
+#th2 = angle2
+th3 = -1.0*(angle3 - 120.0)
+th4 = angle4 - 120.0
+th5 = -1.0*(angle5 - 120.0)
 len56 = 70.0
 len45 = 100.0
 len34 = 100.0

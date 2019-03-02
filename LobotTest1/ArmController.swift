@@ -8,6 +8,7 @@
 
 import Foundation
 import CoreBluetooth
+import SQLite3
 
 class ArmController : NSObject {
     init(peripheral peri:CBPeripheral, servoChar ch:CBCharacteristic) {
@@ -17,6 +18,7 @@ class ArmController : NSObject {
     var _peripheral:CBPeripheral
     var _char:CBCharacteristic
     var _timer:Timer?
+    var _db:OpaquePointer? // sqlite3 db
 
     // Arm length in mm
     var _d5b:Double = 72.0
@@ -38,7 +40,7 @@ class ArmController : NSObject {
             _ = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.TimerCallback), userInfo: nil, repeats: true)
         }
         print("timer start")
-
+        _db = openDatabase()
     }
     func initAngle() {
         print("initAngle")
@@ -146,8 +148,8 @@ class ArmController : NSObject {
     }
     var _cnt = 0
     func test_mesh_touch() {
-        let start_x = 120.0
-        let start_y = -30.0
+        let start_x = 210.0
+        let start_y = 0.0
         let inc_xy = 10.0
         var myCnt:Int
         var valid:Bool
@@ -202,6 +204,34 @@ class ArmController : NSObject {
         theData[9] = UInt8((angleInt>>8) & 0x00ff)
         let data = NSData(bytes: &theData, length: theData.count)
         _peripheral.writeValue(data as Data, for:_char, type: CBCharacteristicWriteType.withResponse)
+        
+        let cmd = NSString(format: "update angles set angle%d=%.2f where id=1", id, angle)
+        
+        if sqlite3_exec(_db, cmd.cString(using: String.Encoding.utf8.rawValue), nil, nil, nil) != SQLITE_OK {
+            let errmsg = String(cString: sqlite3_errmsg(_db)!)
+            print("error insert into table: \(errmsg)")
+        }
     }
 
+    func openDatabase() -> OpaquePointer? {
+        
+        let fileURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            .appendingPathComponent("xarm.db")
+        
+        // open database
+        
+        var db: OpaquePointer?
+        if sqlite3_open(fileURL.path, &db) != SQLITE_OK {
+            print("error opening database")
+        }
+        if sqlite3_exec(db, "create table if not exists angles (id integer primary key, angle1 text, angle2 text, angle3 text, angle4 text, angle5 text, angle6 text)", nil, nil, nil) != SQLITE_OK {
+            let errmsg = String(cString: sqlite3_errmsg(db)!)
+            print("error creating table: \(errmsg)")
+        }
+        if sqlite3_exec(db, "insert into angles values(1,0,0,0,0,0,0)", nil, nil, nil) != SQLITE_OK {
+            let errmsg = String(cString: sqlite3_errmsg(db)!)
+            print("error insert into table: \(errmsg)")
+        }
+        return db
+    }
 }
