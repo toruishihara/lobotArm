@@ -21,21 +21,23 @@ class ArmController : NSObject {
     var _db:OpaquePointer? // sqlite3 db
 
     // Arm length in mm
-    var _d5b:Double = 72.0
-    var _d54:Double = 96.0
-    var _d43:Double = 96.0
-    var _d32:Double = 96.0
-    var _d20:Double = 149.0 //96.0
+    var _d5b:Double = 73.0 // Base table and ID5 servo height
+    var _d54:Double = 96.0 // Leg ID5 servo and ID4
+    var _d43:Double = 96.0 // Leg ID4 servo and ID3
+    var _d32:Double = 100.0 // Leg ID3 servbo and pencil top
+    var _d20:Double = 148.0 // pencil length
 
+    // calibrated angle
     var _angleInited = 0
-    var _angle1:Double = 180.0
-    var _angle2:Double = 70.0 //160.0
-    var _angle3:Double = 120.0
-    var _angle4:Double = 120.0
-    var _angle5:Double = 124.0 //59.0
+    var _angle1:Double = 0.0   // Not used
+    var _angle2:Double = 70.0  // pencil down vertically
+    var _angle3:Double = 120.0 // straight line
+    var _angle4:Double = 120.0 // Straight line
+    var _angle5:Double = 124.0 // Straight up
     var _angle6:Double = 90.0
     
     func Start() {
+        initAngle()
         DispatchQueue.main.async {
             _ = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.TimerCallback), userInfo: nil, repeats: true)
         }
@@ -136,54 +138,53 @@ class ArmController : NSObject {
         var valid:Bool
         let len = sqrt(x*x + y*y)
         let th6 = asin(y/len)*180.0/Double.pi
-        (th3,th4,th5,valid) = calcThFold(len:len, z:z)
-        if (th5 > 20.0 || valid == false) {
-            print("Extend")
-            (th3, th4, th5, valid) = calcThExtend(len:len, z:z)
+        (th3,th4,th5,valid) = calcThExtend(len:len, z:z)
+        if (valid == false) {
+            print("Fold")
+            (th3, th4, th5, valid) = calcThFold(len:len, z:z)
             return (th3, th4, th5, th6, valid)
         } else {
-            print("Fold")
+            print("Extend")
             return (th3, th4, th5, th6, valid)
         }
     }
     var _cnt = 0
+    var _th3:Double = 0.0
+    var _th4:Double = 0.0
+    var _th5:Double = 0.0
+    var _th6:Double = 0.0
+    var _valid:Bool = true
     func test_mesh_touch() {
-        let start_x = 210.0
+        let start_x = 240.0
         let start_y = 0.0
         let inc_xy = 10.0
         var myCnt:Int
-        var valid:Bool
+        
         if (_cnt <= 100 && _cnt % 5 == 2) {
-            var th3:Double
-            var th4:Double
-            var th5:Double
-            var th6:Double
             myCnt = _cnt/5
-            (th3,th4,th5,th6,valid) = calcThFromXYZ(x:start_x + inc_xy*Double(myCnt%10), y:start_y + inc_xy*Double(myCnt/10), z:40.0)
-            print("cnt=\(myCnt) th3=\(th3) th4=\(th4) th5=\(th5) valid=\(valid)")
-            if (valid == false) {
+            (_th3, _th4, _th5, _th6, _valid) = calcThFromXYZ(x:start_x + inc_xy*Double(myCnt%10), y:start_y + inc_xy*Double(myCnt/10), z:10.0)
+            print("cnt=\(myCnt) th3=\(_th3) th4=\(_th4) th5=\(_th5) valid=\(_valid)")
+            if (_valid == false) {
                 return
             }
-            moveServo(id:6, angle: -1.0*th6 + _angle6, time:500)
-            moveServo(id:5, angle: -1.0*th5 + _angle5, time:500)
-            moveServo(id:4, angle:  1.0*th4 + _angle4, time:500)
-            moveServo(id:3, angle: -1.0*th3 + _angle3, time:500)
+            moveServo(id:6, angle: -1.0*_th6 + _angle6, time:500)
+            moveServo(id:5, angle: -1.0*_th5 + _angle5, time:500)
+            moveServo(id:4, angle:  1.0*_th4 + _angle4, time:500)
+            moveServo(id:3, angle: -1.0*_th3 + _angle3 + 30.0, time:500)
+            updateSqlite(ang1: nil, ang2: nil, ang3: -1.0*_th3, ang4: 1.0*_th4, ang5: -1.0*_th5, ang6: -1.0*_th6)
         }
-        if (_cnt <= 100 && _cnt % 5 == 3) {
-            var th3:Double
-            var th4:Double
-            var th5:Double
-            var th6:Double
+        if (_cnt <= 100 && _cnt % 5 == 3 && _valid == true) {
             myCnt = _cnt/5
-            (th3,th4,th5,th6,valid) = calcThFromXYZ(x:start_x + inc_xy*Double(myCnt%10), y:start_y + inc_xy*Double(myCnt/10), z:0.0)
-            print("cnt=\(myCnt) th3=\(th3) th4=\(th4) th5=\(th5) valid=\(valid)")
-            if (valid == false) {
+            (_th3, _th4, _th5, _th6, _valid) = calcThFromXYZ(x:start_x + inc_xy*Double(myCnt%10), y:start_y + inc_xy*Double(myCnt/10), z:0.0)
+            print("cnt=\(myCnt) th3=\(_th3) th4=\(_th4) th5=\(_th5) valid=\(_valid)")
+            if (_valid == false) {
                 return
             }
-            moveServo(id:6, angle: -1.0*th6 + _angle6, time:500)
-            moveServo(id:5, angle: -1.0*th5 + _angle5, time:500)
-            moveServo(id:4, angle:  1.0*th4 + _angle4, time:500)
-            moveServo(id:3, angle: -1.0*th3 + _angle3, time:500)
+            moveServo(id:6, angle: -1.0*_th6 + _angle6, time:500)
+            moveServo(id:5, angle: -1.0*_th5 + _angle5, time:500)
+            moveServo(id:4, angle:  1.0*_th4 + _angle4, time:500)
+            moveServo(id:3, angle: -1.0*_th3 + _angle3, time:500)
+            updateSqlite(ang1: nil, ang2: nil, ang3: -1.0*_th3, ang4: 1.0*_th4, ang5: -1.0*_th5, ang6: -1.0*_th6)
         }
         _cnt = _cnt + 1
     }
@@ -192,10 +193,7 @@ class ArmController : NSObject {
         test_mesh_touch()
     }
     func moveServo(id: UInt, angle: Double, time: UInt) -> Void {
-        //var theData : [UInt8] = [ 0x55, 0x55, 0x08, 0x03, 0x01, 0x96, 0x00, 0x01, 0x4b, 0x01 ]
         var theData : [UInt8] = [ 0x55, 0x55, 0x08, 0x03, 0x01, 0x96, 0x00, 0x01, 0x4b, 0x01 ]
-        //let sum:UInt8 = LobotCheckSum(buf: theData)
-        //print("sum=\(sum)")
         theData[5] = UInt8(time & 0x00ff)
         theData[6] = UInt8((time>>8) & 0x00ff)
         theData[7] = UInt8(id)
@@ -204,15 +202,31 @@ class ArmController : NSObject {
         theData[9] = UInt8((angleInt>>8) & 0x00ff)
         let data = NSData(bytes: &theData, length: theData.count)
         _peripheral.writeValue(data as Data, for:_char, type: CBCharacteristicWriteType.withResponse)
-        
-        let cmd = NSString(format: "update angles set angle%d=%.2f where id=1", id, angle)
-        
-        if sqlite3_exec(_db, cmd.cString(using: String.Encoding.utf8.rawValue), nil, nil, nil) != SQLITE_OK {
-            let errmsg = String(cString: sqlite3_errmsg(_db)!)
-            print("error insert into table: \(errmsg)")
-        }
     }
 
+    func updateSqliteOneAngle(id:Int, angle:Double?) -> Void {
+        if (_db == nil || angle == nil) {
+            return
+        }
+        if (angle! < -120.0 || angle! > 120.0) {
+            return
+        }
+        let cmd = NSString(format: "update angles set angle%d=%.2f where id=1", id, angle!)
+        if sqlite3_exec(_db, cmd.cString(using: String.Encoding.utf8.rawValue), nil, nil, nil) != SQLITE_OK {
+            let errmsg = String(cString: sqlite3_errmsg(_db)!)
+            print("error update table: \(errmsg)")
+        }
+    }
+    
+    func updateSqlite(ang1:Double?, ang2:Double?, ang3:Double?, ang4:Double?, ang5:Double?, ang6:Double?) -> Void {
+        updateSqliteOneAngle(id:1, angle:ang1)
+        updateSqliteOneAngle(id:2, angle:ang2)
+        updateSqliteOneAngle(id:3, angle:ang3)
+        updateSqliteOneAngle(id:4, angle:ang4)
+        updateSqliteOneAngle(id:5, angle:ang5)
+        updateSqliteOneAngle(id:6, angle:ang6)
+    }
+    
     func openDatabase() -> OpaquePointer? {
         
         let fileURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
