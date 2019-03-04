@@ -21,8 +21,10 @@ class ViewController: NSViewController, CBCentralManagerDelegate, CBPeripheralDe
         _peripherals = Array<CBPeripheral>()
         _centralManager = CBCentralManager(delegate: self, queue: centralQueue)
         
-        //_ = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.update), userInfo: nil, repeats: true)
-
+        // test only, no connection case
+        _armControoler = ArmController(peripheral:nil, servoChar:nil)
+        _armControoler!.Start()
+        // test only
     }
 
     override var representedObject: Any? {
@@ -96,7 +98,6 @@ class ViewController: NSViewController, CBCentralManagerDelegate, CBPeripheralDe
             print(characteristic)
             if characteristic.uuid == CBUUID(string: "0xFFE1") {
                 _char = characteristic;
-                //moveServo(id:5, angle:90.0)
                 _armControoler = ArmController(peripheral:peripheral, servoChar:characteristic)
                 _armControoler!.Start()
             }

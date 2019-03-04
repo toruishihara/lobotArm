@@ -11,12 +11,12 @@ import CoreBluetooth
 import SQLite3
 
 class ArmController : NSObject {
-    init(peripheral peri:CBPeripheral, servoChar ch:CBCharacteristic) {
+    init(peripheral peri:CBPeripheral?, servoChar ch:CBCharacteristic?) {
         _peripheral = peri
         _char = ch
     }
-    var _peripheral:CBPeripheral
-    var _char:CBCharacteristic
+    var _peripheral:CBPeripheral?
+    var _char:CBCharacteristic?
     var _timer:Timer?
     var _db:OpaquePointer? // sqlite3 db
 
@@ -155,7 +155,7 @@ class ArmController : NSObject {
     var _th6:Double = 0.0
     var _valid:Bool = true
     func test_mesh_touch() {
-        let start_x = 240.0
+        let start_x = 100.0
         let start_y = 0.0
         let inc_xy = 10.0
         var myCnt:Int
@@ -171,7 +171,7 @@ class ArmController : NSObject {
             moveServo(id:5, angle: -1.0*_th5 + _angle5, time:500)
             moveServo(id:4, angle:  1.0*_th4 + _angle4, time:500)
             moveServo(id:3, angle: -1.0*_th3 + _angle3 + 30.0, time:500)
-            updateSqlite(ang1: nil, ang2: nil, ang3: -1.0*_th3, ang4: 1.0*_th4, ang5: -1.0*_th5, ang6: -1.0*_th6)
+            updateSqlite(ang1: nil, ang2: nil, ang3: _th3, ang4: _th4, ang5: _th5, ang6: _th6)
         }
         if (_cnt <= 100 && _cnt % 5 == 3 && _valid == true) {
             myCnt = _cnt/5
@@ -184,7 +184,7 @@ class ArmController : NSObject {
             moveServo(id:5, angle: -1.0*_th5 + _angle5, time:500)
             moveServo(id:4, angle:  1.0*_th4 + _angle4, time:500)
             moveServo(id:3, angle: -1.0*_th3 + _angle3, time:500)
-            updateSqlite(ang1: nil, ang2: nil, ang3: -1.0*_th3, ang4: 1.0*_th4, ang5: -1.0*_th5, ang6: -1.0*_th6)
+            updateSqlite(ang1: nil, ang2: nil, ang3: _th3, ang4: _th4, ang5: _th5, ang6: _th6)
         }
         _cnt = _cnt + 1
     }
@@ -193,6 +193,9 @@ class ArmController : NSObject {
         test_mesh_touch()
     }
     func moveServo(id: UInt, angle: Double, time: UInt) -> Void {
+        if (_peripheral == nil || _char == nil) {
+            return
+        }
         var theData : [UInt8] = [ 0x55, 0x55, 0x08, 0x03, 0x01, 0x96, 0x00, 0x01, 0x4b, 0x01 ]
         theData[5] = UInt8(time & 0x00ff)
         theData[6] = UInt8((time>>8) & 0x00ff)
@@ -201,14 +204,14 @@ class ArmController : NSObject {
         theData[8] = UInt8(angleInt & 0x00ff)
         theData[9] = UInt8((angleInt>>8) & 0x00ff)
         let data = NSData(bytes: &theData, length: theData.count)
-        _peripheral.writeValue(data as Data, for:_char, type: CBCharacteristicWriteType.withResponse)
+        _peripheral!.writeValue(data as Data, for:_char!, type: CBCharacteristicWriteType.withResponse)
     }
 
     func updateSqliteOneAngle(id:Int, angle:Double?) -> Void {
         if (_db == nil || angle == nil) {
             return
         }
-        if (angle! < -120.0 || angle! > 120.0) {
+        if (angle! < -180.0 || angle! > 180.0) {
             return
         }
         let cmd = NSString(format: "update angles set angle%d=%.2f where id=1", id, angle!)
