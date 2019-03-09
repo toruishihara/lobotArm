@@ -15,6 +15,9 @@ class ArmController : NSObject {
         _peripheral = peri
         _char = ch
     }
+    // config
+    var _sendToBLE:Bool = true
+    
     var _peripheral:CBPeripheral?
     var _char:CBCharacteristic?
     var _timer:Timer?
@@ -25,27 +28,26 @@ class ArmController : NSObject {
     var _d54:Double = 96.0 // Leg ID5 servo and ID4
     var _d43:Double = 96.0 // Leg ID4 servo and ID3
     var _d32:Double = 100.0 // Leg ID3 servbo and pencil top
-    var _d20:Double = 148.0 // pencil length
+    var _d20:Double = 130.0 // pencil length
 
-    // calibrated angle
+    // Calibrated angle
     var _angleInited = 0
-    var _angle1:Double = 0.0   // Not used
+    var _angle1:Double = 0.0   // not used
     var _angle2:Double = 70.0  // pencil down vertically
     var _angle3:Double = 120.0 // straight line
-    var _angle4:Double = 120.0 // Straight line
-    var _angle5:Double = 124.0 // Straight up
-    var _angle6:Double = 90.0
+    var _angle4:Double = 123.0 // straight line
+    var _angle5:Double = 121.0 // straight up
+    var _angle6:Double = 160.0
     
     func Start() {
-        initAngle()
         DispatchQueue.main.async {
             _ = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.TimerCallback), userInfo: nil, repeats: true)
         }
         print("timer start")
         _db = openDatabase()
     }
-    func initAngle() {
-        print("initAngle")
+    func initAngle1() {
+        print("initAngle1")
         //moveServo(id:1, angle:_angle1, time:1000)
         moveServo(id:2, angle:_angle2, time:1000)
         moveServo(id:3, angle:_angle3, time:1000)
@@ -53,7 +55,25 @@ class ArmController : NSObject {
         moveServo(id:5, angle:_angle5, time:1000)
         moveServo(id:6, angle:_angle6, time:1000)
     }
-    
+    func initAngle2() {
+        print("initAngle2")
+        //moveServo(id:1, angle:_angle1, time:1000)
+        moveServo(id:2, angle:_angle2, time:1000)
+        moveServo(id:3, angle:_angle3+30, time:1000)
+        moveServo(id:4, angle:_angle4+30, time:1000)
+        moveServo(id:5, angle:_angle5+30, time:1000)
+        moveServo(id:6, angle:_angle6, time:1000)
+    }
+    func initAngle3() {
+        print("initAngle3")
+        //moveServo(id:1, angle:_angle1, time:1000)
+        moveServo(id:2, angle:_angle2, time:1000)
+        moveServo(id:3, angle:_angle3+60, time:1000)
+        moveServo(id:4, angle:_angle4+60, time:1000)
+        moveServo(id:5, angle:_angle5+60, time:1000)
+        moveServo(id:6, angle:_angle6+30, time:1000)
+    }
+
     func cosFomula(len1 a:Double, len2 b:Double, len3 c:Double, valid:inout Bool) -> (Double) {
         let val = (a*a + b*b - c*c)/(2.0*a*b)
         if (val > 1.0 || val < -1.0) {
@@ -83,29 +103,30 @@ class ArmController : NSObject {
     }
     func calcThExtend(len: Double, z:Double) -> (Double, Double, Double, Bool) {
         let r:Double = sqrt((len - _d32)*(len - _d32) + (z + _d20 - _d5b)*(z + _d20 - _d5b))
-        print("r=\(r)")
+        print("l=\(len) z=\(z) r=\(r)")
         let tmp = 0.5*r/_d54
         if (tmp > 1.0 || tmp < -1.0) {
             print("error tmp00=\(tmp)")
             return (0.0, 0.0, 0.0, false)
         }
-        let thd = acos(tmp)
+        let thd = acos(tmp) // angle P3-P5-P4
         let thdangle = thd*180.0/Double.pi
-        print("thdangle=\(thdangle)")
+        print("thdangle=\(Int(thdangle))")
         let th4 = 2*thd
         let th4angle = th4*180.0/Double.pi
-        print("th4angle=\(th4angle)")
+        print("th4angle=\(Int(th4angle))")
         let tmp2 = (len - _d32)/r
         if (tmp2 > 1.0 || tmp2 < -1.0) {
             print("error tmp02=\(tmp2)")
             return (0.0, 0.0, 0.0, false)
         }
+        let th5_thd = asin(tmp2)*180.0/Double.pi
         let th5 = asin(tmp2) - thd
         let th5angle = th5*180.0/Double.pi
-        print("th5angle=\(th5angle)")
+        print("th5angle=\(Int(th5angle))")
         let th3 = 0.5*Double.pi - th4 - th5
         let th3angle = th3*180.0/Double.pi
-        print("th3angle=\(th3angle)")
+        print("th3angle=\(Int(th3angle))")
         return (th3angle, th4angle, th5angle, true)
     }
     func calcThFold(len: Double, z:Double) -> (Double, Double, Double, Bool) {
@@ -115,16 +136,16 @@ class ArmController : NSObject {
         let t = sqrt(len*len + (_d5b - z)*(_d5b - z))
         
         let th3 = Double.pi*120.0/180.0 - cosFomula(len1:b, len2:s, len3:t, valid:&valid) - asin(_d20/s)
-        print("new=\(th3)")
+        print("new=\(Int(th3))")
         if (valid == false) {
             return (0.0, 0.0, 0.0, false)
         }
         let th3angle = th3*180.0/Double.pi
-        print("th3angle=\(th3angle)")
+        print("th3angle=\(Int(th3angle))")
         let th5 = Double.pi/6.0 - cosFomula(len1:b, len2:t, len3:s, valid:&valid) + asin((_d5b - z)/t)
         let th5angle = th5*180.0/Double.pi
-        print("th5angle=\(th5angle)")
-        if (th3angle > 30.0) {
+        print("th5angle=\(Int(th5angle))")
+        if (th3angle > 120.0 || th3angle < -30.0) {
             return (th3angle, 120.0, th5angle, false)
         } else {
             return (th3angle, 120.0, th5angle, true)
@@ -135,12 +156,14 @@ class ArmController : NSObject {
         var th3:Double
         var th4:Double
         var th5:Double
-        var valid:Bool
+        var valid:Bool = true
+        print("XYZ=\(Int(x)), \(Int(y)), \(Int(z))")
         let len = sqrt(x*x + y*y)
         let th6 = asin(y/len)*180.0/Double.pi
         (th3,th4,th5,valid) = calcThExtend(len:len, z:z)
-        if (valid == false) {
+        if (valid == false || th4 > 120.0) {
             print("Fold")
+            valid = true
             (th3, th4, th5, valid) = calcThFold(len:len, z:z)
             return (th3, th4, th5, th6, valid)
         } else {
@@ -155,45 +178,67 @@ class ArmController : NSObject {
     var _th6:Double = 0.0
     var _valid:Bool = true
     func test_mesh_touch() {
-        let start_x = 100.0
+        let start_x = 120.0
+        let end_x = 200.0
         let start_y = 0.0
+        let end_y = 50.0
         let inc_xy = 10.0
         var myCnt:Int
         
-        if (_cnt <= 100 && _cnt % 5 == 2) {
+        if (_cnt % 5 == 1) {
             myCnt = _cnt/5
-            (_th3, _th4, _th5, _th6, _valid) = calcThFromXYZ(x:start_x + inc_xy*Double(myCnt%10), y:start_y + inc_xy*Double(myCnt/10), z:10.0)
-            print("cnt=\(myCnt) th3=\(_th3) th4=\(_th4) th5=\(_th5) valid=\(_valid)")
+            let myMod = Int((end_x - start_x)/inc_xy + 1)
+            let x = start_x + inc_xy*Double(myCnt % myMod)
+            let y = start_y + inc_xy*Double(myCnt / myMod)
+            if (x > end_x || y > end_y) {
+                return
+            }
+            var z:Double
+            if (x > 170) { // temporary adjustment
+                z = 3.0
+            } else {
+                z = 4.0
+            }
+            (_th3, _th4, _th5, _th6, _valid) = calcThFromXYZ(x:x, y:y, z:z)
+            print("cnt=\(myCnt) th3=\(Int(_th3)) th4=\(Int(_th4)) th5=\(Int(_th5)) valid=\(_valid)")
             if (_valid == false) {
                 return
             }
+            moveServo(id:2, angle: _angle2 - 5.0, time:500)
             moveServo(id:6, angle: -1.0*_th6 + _angle6, time:500)
-            moveServo(id:5, angle: -1.0*_th5 + _angle5, time:500)
-            moveServo(id:4, angle:  1.0*_th4 + _angle4, time:500)
-            moveServo(id:3, angle: -1.0*_th3 + _angle3 + 30.0, time:500)
-            updateSqlite(ang1: nil, ang2: nil, ang3: _th3, ang4: _th4, ang5: _th5, ang6: _th6)
+            moveServo(id:5, angle:  1.0*_th5 + _angle5, time:500)
+            moveServo(id:4, angle: -1.0*_th4 + _angle4, time:500)
+            moveServo(id:3, angle:  1.0*_th3 + _angle3 - 5.0, time:500)
+            updateSqlite(ang1:nil, ang2:nil, ang3:_th3, ang4:_th4, ang5:_th5, ang6:_th6)
         }
-        if (_cnt <= 100 && _cnt % 5 == 3 && _valid == true) {
-            myCnt = _cnt/5
-            (_th3, _th4, _th5, _th6, _valid) = calcThFromXYZ(x:start_x + inc_xy*Double(myCnt%10), y:start_y + inc_xy*Double(myCnt/10), z:0.0)
-            print("cnt=\(myCnt) th3=\(_th3) th4=\(_th4) th5=\(_th5) valid=\(_valid)")
-            if (_valid == false) {
-                return
-            }
-            moveServo(id:6, angle: -1.0*_th6 + _angle6, time:500)
-            moveServo(id:5, angle: -1.0*_th5 + _angle5, time:500)
-            moveServo(id:4, angle:  1.0*_th4 + _angle4, time:500)
-            moveServo(id:3, angle: -1.0*_th3 + _angle3, time:500)
-            updateSqlite(ang1: nil, ang2: nil, ang3: _th3, ang4: _th4, ang5: _th5, ang6: _th6)
+        if (_cnt % 5 == 2) {
+            moveServo(id:2, angle: _angle2, time:1000)
+            moveServo(id:3, angle: 1.0*_th3 + _angle3, time:1000)
         }
-        _cnt = _cnt + 1
+        if (_cnt % 5 == 4) {
+            moveServo(id:2, angle: _angle2-5.0, time:500)
+            moveServo(id:3, angle: 1.0*_th3 + _angle3 - 5.0, time:1000)
+        }
+    }
+    func calibrate() {
+        if (_cnt == 0) {
+            initAngle1()
+        }
+        if (_cnt == 5) {
+            initAngle2()
+        }
+        if (_cnt == 10) {
+            initAngle3()
+        }
     }
     @objc func TimerCallback() {
         print("update")
+        //calibrate()
         test_mesh_touch()
+        _cnt = _cnt + 1
     }
     func moveServo(id: UInt, angle: Double, time: UInt) -> Void {
-        if (_peripheral == nil || _char == nil) {
+        if (_sendToBLE == false || _peripheral == nil || _char == nil) {
             return
         }
         var theData : [UInt8] = [ 0x55, 0x55, 0x08, 0x03, 0x01, 0x96, 0x00, 0x01, 0x4b, 0x01 ]

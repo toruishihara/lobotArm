@@ -15,7 +15,7 @@ len56 = 73.0
 len45 = 96.0
 len34 = 96.0
 len23 = 100.0
-len12 = 148.0
+len12 = 120.0
 
 p6 = [0,0,0]
 p5 = [0,0,len56]
@@ -43,7 +43,7 @@ def read_calc():
     c.close()
     print(angle1, angle2, angle3, angle4, angle5, angle6)
     th2 = ra*90.0
-    th3 = -1.0*ra*angle3
+    th3 = ra*angle3
     th4 = ra*angle4
     th5 = ra*angle5
     p4 = [p5[0] + len45*math.sin(th5), p5[1], p5[2] + len45*math.cos(th5)]
