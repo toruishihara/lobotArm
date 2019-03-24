@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import AppKit
 import CoreBluetooth
 import SQLite3
 
@@ -28,7 +29,7 @@ class ArmController : NSObject {
     var _d54:Double = 96.0 // Leg ID5 servo and ID4
     var _d43:Double = 96.0 // Leg ID4 servo and ID3
     var _d32:Double = 100.0 // Leg ID3 servbo and pencil top
-    var _d20:Double = 130.0 // pencil length
+    var _d20:Double = 105.0 // pencil length
 
     // Calibrated angle
     var _angleInited = 0
@@ -195,29 +196,39 @@ class ArmController : NSObject {
             }
             var z:Double
             if (x > 170) { // temporary adjustment
-                z = 3.0
+                z = 42.0
             } else {
-                z = 4.0
+                z = 42.0
             }
             (_th3, _th4, _th5, _th6, _valid) = calcThFromXYZ(x:x, y:y, z:z)
             print("cnt=\(myCnt) th3=\(Int(_th3)) th4=\(Int(_th4)) th5=\(Int(_th5)) valid=\(_valid)")
             if (_valid == false) {
                 return
             }
-            moveServo(id:2, angle: _angle2 - 5.0, time:500)
+            moveServo(id:2, angle: _angle2 - 0.0, time:500)
             moveServo(id:6, angle: -1.0*_th6 + _angle6, time:500)
             moveServo(id:5, angle:  1.0*_th5 + _angle5, time:500)
             moveServo(id:4, angle: -1.0*_th4 + _angle4, time:500)
-            moveServo(id:3, angle:  1.0*_th3 + _angle3 - 5.0, time:500)
+            moveServo(id:3, angle:  1.0*_th3 + _angle3 - 30.0, time:500)
             updateSqlite(ang1:nil, ang2:nil, ang3:_th3, ang4:_th4, ang5:_th5, ang6:_th6)
         }
         if (_cnt % 5 == 2) {
             moveServo(id:2, angle: _angle2, time:1000)
-            moveServo(id:3, angle: 1.0*_th3 + _angle3, time:1000)
+            moveServo(id:3, angle: 1.0*_th3 + _angle3 - 0.0, time:1000)
         }
-        if (_cnt % 5 == 4) {
-            moveServo(id:2, angle: _angle2-5.0, time:500)
-            moveServo(id:3, angle: 1.0*_th3 + _angle3 - 5.0, time:1000)
+        if (_cnt % 5 == 3) {
+            let appDelegate = NSApplication.shared.delegate as! AppDelegate
+            if (appDelegate._currentWeight != nil && appDelegate._currentWeight! < 100) {
+                print("\(appDelegate._currentWeight!) more push")
+                moveServo(id:3, angle: 1.0*_th3 + _angle3 - 1.0, time:1000)
+            }
+        }
+        if (_cnt % 5 == 3) {
+            let appDelegate = NSApplication.shared.delegate as! AppDelegate
+            if (appDelegate._currentWeight != nil && appDelegate._currentWeight! < 100) {
+                print("\(appDelegate._currentWeight!) 2 more push")
+                moveServo(id:3, angle: 1.0*_th3 + _angle3 - 2.0, time:1000)
+            }
         }
     }
     func calibrate() {
@@ -233,7 +244,9 @@ class ArmController : NSObject {
     }
     @objc func TimerCallback() {
         print("update")
-        //calibrate()
+        if (_cnt == 0) {
+          calibrate()
+        }
         test_mesh_touch()
         _cnt = _cnt + 1
     }
