@@ -29,7 +29,7 @@ class ArmController : NSObject {
     var _d54:Double = 96.0 // Leg ID5 servo and ID4
     var _d43:Double = 96.0 // Leg ID4 servo and ID3
     var _d32:Double = 100.0 // Leg ID3 servbo and pencil top
-    var _d20:Double = 105.0 // pencil length
+    var _d20:Double = 115.0 // pencil length
 
     // Calibrated angle
     var _angleInited = 0
@@ -40,39 +40,40 @@ class ArmController : NSObject {
     var _angle5:Double = 121.0 // straight up
     var _angle6:Double = 160.0
     
+    let _interval:UInt = 500
     func Start() {
         DispatchQueue.main.async {
-            _ = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.TimerCallback), userInfo: nil, repeats: true)
+            _ = Timer.scheduledTimer(timeInterval: Double(self._interval)/1000.0, target: self, selector: #selector(self.TimerCallback), userInfo: nil, repeats: true)
         }
         print("timer start")
         _db = openDatabase()
     }
     func initAngle1() {
         print("initAngle1")
-        //moveServo(id:1, angle:_angle1, time:1000)
-        moveServo(id:2, angle:_angle2, time:1000)
-        moveServo(id:3, angle:_angle3, time:1000)
-        moveServo(id:4, angle:_angle4, time:1000)
-        moveServo(id:5, angle:_angle5, time:1000)
-        moveServo(id:6, angle:_angle6, time:1000)
+        //moveServo(id:1, angle:_angle1, time:_interval)
+        moveServo(id:2, angle:_angle2, time:_interval)
+        moveServo(id:3, angle:_angle3, time:_interval)
+        moveServo(id:4, angle:_angle4, time:_interval)
+        moveServo(id:5, angle:_angle5, time:_interval)
+        moveServo(id:6, angle:_angle6, time:_interval)
     }
     func initAngle2() {
         print("initAngle2")
-        //moveServo(id:1, angle:_angle1, time:1000)
-        moveServo(id:2, angle:_angle2, time:1000)
-        moveServo(id:3, angle:_angle3+30, time:1000)
-        moveServo(id:4, angle:_angle4+30, time:1000)
-        moveServo(id:5, angle:_angle5+30, time:1000)
-        moveServo(id:6, angle:_angle6, time:1000)
+        //moveServo(id:1, angle:_angle1, time:_interval)
+        moveServo(id:2, angle:_angle2, time:_interval)
+        moveServo(id:3, angle:_angle3+30, time:_interval)
+        moveServo(id:4, angle:_angle4+30, time:_interval)
+        moveServo(id:5, angle:_angle5+30, time:_interval)
+        moveServo(id:6, angle:_angle6, time:_interval)
     }
     func initAngle3() {
         print("initAngle3")
-        //moveServo(id:1, angle:_angle1, time:1000)
-        moveServo(id:2, angle:_angle2, time:1000)
-        moveServo(id:3, angle:_angle3+60, time:1000)
-        moveServo(id:4, angle:_angle4+60, time:1000)
-        moveServo(id:5, angle:_angle5+60, time:1000)
-        moveServo(id:6, angle:_angle6+30, time:1000)
+        //moveServo(id:1, angle:_angle1, time:_interval)
+        moveServo(id:2, angle:_angle2, time:_interval)
+        moveServo(id:3, angle:_angle3+60, time:_interval)
+        moveServo(id:4, angle:_angle4+60, time:_interval)
+        moveServo(id:5, angle:_angle5+60, time:_interval)
+        moveServo(id:6, angle:_angle6+30, time:_interval)
     }
 
     func cosFomula(len1 a:Double, len2 b:Double, len3 c:Double, valid:inout Bool) -> (Double) {
@@ -172,74 +173,118 @@ class ArmController : NSObject {
             return (th3, th4, th5, th6, valid)
         }
     }
+    let _start_x = 140.0
+    let _end_x = 260.0
+    let _start_y = -60.0
+    let _end_y = 50.0
+    let _inc_xy = 10.0
+
     var _cnt = 0
     var _th3:Double = 0.0
     var _th4:Double = 0.0
     var _th5:Double = 0.0
     var _th6:Double = 0.0
     var _valid:Bool = true
+    var _x:Double = 0.0
+    var _y:Double = 0.0
+    var _z:Double = 0.0
     func test_mesh_touch() {
-        let start_x = 120.0
-        let end_x = 200.0
-        let start_y = 0.0
-        let end_y = 50.0
-        let inc_xy = 10.0
         var myCnt:Int
         
-        if (_cnt % 5 == 1) {
-            myCnt = _cnt/5
-            let myMod = Int((end_x - start_x)/inc_xy + 1)
-            let x = start_x + inc_xy*Double(myCnt % myMod)
-            let y = start_y + inc_xy*Double(myCnt / myMod)
-            if (x > end_x || y > end_y) {
+        print("_cnt=\(_cnt)")
+        if (_cnt % 10 == 0 && _cnt >= 10) {
+            myCnt = _cnt/10
+            let myMod = Int((_end_x - _start_x)/_inc_xy + 1)
+            _x = _start_x + _inc_xy*Double(myCnt % myMod)
+            _y = _start_y + _inc_xy*Double(myCnt / myMod)
+            if (_x > _end_x || _y > _end_y) {
                 return
             }
-            var z:Double
-            if (x > 170) { // temporary adjustment
-                z = 42.0
-            } else {
-                z = 42.0
-            }
-            (_th3, _th4, _th5, _th6, _valid) = calcThFromXYZ(x:x, y:y, z:z)
+            _z = 42.0 + 0.0
+            (_th3, _th4, _th5, _th6, _valid) = calcThFromXYZ(x:_x, y:_y, z:_z)
             print("cnt=\(myCnt) th3=\(Int(_th3)) th4=\(Int(_th4)) th5=\(Int(_th5)) valid=\(_valid)")
             if (_valid == false) {
                 return
             }
-            moveServo(id:2, angle: _angle2 - 0.0, time:500)
-            moveServo(id:6, angle: -1.0*_th6 + _angle6, time:500)
-            moveServo(id:5, angle:  1.0*_th5 + _angle5, time:500)
-            moveServo(id:4, angle: -1.0*_th4 + _angle4, time:500)
-            moveServo(id:3, angle:  1.0*_th3 + _angle3 - 30.0, time:500)
+            moveServo(id:2, angle: _angle2 - 0.0, time:2*_interval)
+            moveServo(id:6, angle: -1.0*_th6 + _angle6, time:2*_interval)
+            moveServo(id:5, angle:  1.0*_th5 + _angle5, time:2*_interval)
+            moveServo(id:4, angle: -1.0*_th4 + _angle4, time:2*_interval)
+            moveServo(id:3, angle:  1.0*_th3 + _angle3 - 10.0, time:2*_interval)
             updateSqlite(ang1:nil, ang2:nil, ang3:_th3, ang4:_th4, ang5:_th5, ang6:_th6)
         }
-        if (_cnt % 5 == 2) {
-            moveServo(id:2, angle: _angle2, time:1000)
-            moveServo(id:3, angle: 1.0*_th3 + _angle3 - 0.0, time:1000)
+        if (_cnt % 10 == 2 && _cnt >= 10) {
+            moveServo(id:3, angle:  1.0*_th3 + _angle3, time:_interval)
+            updateSqlite(ang1:nil, ang2:nil, ang3:_th3, ang4:_th4, ang5:_th5, ang6:_th6)
         }
-        if (_cnt % 5 == 3) {
+        if (_cnt % 10 == 3 && _cnt >= 10) {
             let appDelegate = NSApplication.shared.delegate as! AppDelegate
-            if (appDelegate._currentWeight != nil && appDelegate._currentWeight! < 100) {
+            if (appDelegate._currentWeight != nil && appDelegate._currentWeight! < 50) {
                 print("\(appDelegate._currentWeight!) more push")
-                moveServo(id:3, angle: 1.0*_th3 + _angle3 - 1.0, time:1000)
+                moveServo(id:3, angle:  1.0*_th3 + _angle3 + 2.0, time:_interval)
             }
         }
-        if (_cnt % 5 == 3) {
+        if (_cnt % 10 == 4 && _cnt >= 10) {
             let appDelegate = NSApplication.shared.delegate as! AppDelegate
-            if (appDelegate._currentWeight != nil && appDelegate._currentWeight! < 100) {
+            if (appDelegate._currentWeight != nil && appDelegate._currentWeight! < 50) {
                 print("\(appDelegate._currentWeight!) 2 more push")
-                moveServo(id:3, angle: 1.0*_th3 + _angle3 - 2.0, time:1000)
+                moveServo(id:3, angle:  1.0*_th3 + _angle3 + 4.0, time:_interval)
             }
         }
+        if (_cnt % 10 == 5 && _cnt >= 10) {
+            let appDelegate = NSApplication.shared.delegate as! AppDelegate
+            if (appDelegate._currentWeight != nil && appDelegate._currentWeight! < 50) {
+                print("\(appDelegate._currentWeight!) 3 more push")
+                moveServo(id:3, angle:  1.0*_th3 + _angle3 + 6.0, time:_interval)
+            }
+        }
+        if (_cnt % 10 == 6 && _cnt >= 10) {
+            let appDelegate = NSApplication.shared.delegate as! AppDelegate
+            if (appDelegate._currentWeight != nil && appDelegate._currentWeight! < 50) {
+                print("\(appDelegate._currentWeight!) 4 more push")
+                moveServo(id:3, angle:  1.0*_th3 + _angle3 + 4.0, time:_interval)
+            }
+        }
+        if (_cnt % 10 == 7 && _cnt >= 10) {
+            let appDelegate = NSApplication.shared.delegate as! AppDelegate
+            if (appDelegate._currentWeight != nil && appDelegate._currentWeight! < 50) {
+                print("\(appDelegate._currentWeight!) 4 more push")
+                moveServo(id:3, angle:  1.0*_th3 + _angle3 + 6.0, time:_interval)
+            }
+        }
+        if (_cnt % 10 == 8 && _cnt >= 10) {
+            let appDelegate = NSApplication.shared.delegate as! AppDelegate
+            if (appDelegate._currentWeight != nil && appDelegate._currentWeight! < 50) {
+                print("\(appDelegate._currentWeight!) 4 more push")
+                moveServo(id:3, angle:  1.0*_th3 + _angle3 + 8.0, time:_interval)
+            }
+        }
+        if (_cnt % 10 == 9 && _cnt >= 10) {
+            // Up 20 mm for next movement
+            moveServo(id:3, angle:  1.0*_th3 + _angle3 - 10.0, time:_interval)
+        }
+        // calibrate
+        if (_cnt == 5) {
+            _x = _start_x
+            _y = _start_y
+            _z = 42.0 + 0.0
+            (_th3, _th4, _th5, _th6, _valid) = calcThFromXYZ(x:_x, y:_y, z:_z)
+            print("th3=\(Int(_th3)) th4=\(Int(_th4)) th5=\(Int(_th5)) valid=\(_valid)")
+            if (_valid == false) {
+                return
+            }
+            moveServo(id:2, angle: _angle2 - 0.0, time:2000)
+            moveServo(id:6, angle: -1.0*_th6 + _angle6, time:2000)
+            moveServo(id:5, angle:  1.0*_th5 + _angle5, time:2000)
+            moveServo(id:4, angle: -1.0*_th4 + _angle4, time:2000)
+            moveServo(id:3, angle:  1.0*_th3 + _angle3 - 10.0, time:2000)
+            updateSqlite(ang1:nil, ang2:nil, ang3:_th3, ang4:_th4, ang5:_th5, ang6:_th6)
+        }
+
     }
     func calibrate() {
         if (_cnt == 0) {
             initAngle1()
-        }
-        if (_cnt == 5) {
-            initAngle2()
-        }
-        if (_cnt == 10) {
-            initAngle3()
         }
     }
     @objc func TimerCallback() {
