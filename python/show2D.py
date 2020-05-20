@@ -60,7 +60,5 @@ def animate(i):
     line.set_ydata([p6[2], p5[2], p4[2], p3[2], p2[2], p1[2]])
     return line,
 
-ani = animation.FuncAnimation(
-    fig, animate, init_func=init, interval=1000, blit=True, save_count=50)
-
+j
 plt.show()

@@ -18,6 +18,8 @@ class ViewController: NSViewController, CBCentralManagerDelegate, CBPeripheralDe
     var _charWeight:CBCharacteristic?
     var _charWeightCmd:CBCharacteristic?
     var _armControoler:ArmController?
+    var _armClawControoler:ArmClawController?
+    let _withClaw = true
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -64,7 +66,7 @@ class ViewController: NSViewController, CBCentralManagerDelegate, CBPeripheralDe
         if(peripheral.name == nil) {
             return;
         }
-        print(peripheral.name!)
+        //print("found:\(peripheral.name!)")
         if (peripheral.name!.hasPrefix("xArm")) {
             if (_peripheralArm != nil) {
                 return;
@@ -127,8 +129,13 @@ class ViewController: NSViewController, CBCentralManagerDelegate, CBPeripheralDe
                 print(characteristic)
                 if characteristic.uuid == CBUUID(string: "0xFFE1") {
                     _char = characteristic;
-                    _armControoler = ArmController(peripheral:peripheral, servoChar:characteristic)
-                    _armControoler!.Start()
+                    if (_withClaw) {
+                        _armClawControoler = ArmClawController(peripheral:peripheral, servoChar:characteristic)
+                        _armClawControoler!.Start()
+                    } else {
+                        _armControoler = ArmController(peripheral:peripheral, servoChar:characteristic)
+                        _armControoler!.Start()
+                    }
                 }
             }
         }
